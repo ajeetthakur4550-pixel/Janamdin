@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>जन्मदिन की जानकारी और इतिहास</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f9f9f9; text-align: center; padding: 20px; }
+        .container { background: white; max-width: 600px; margin: auto; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        select { padding: 10px; font-size: 16px; margin: 5px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 12px 25px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.3s; margin-top: 15px; }
+        button:hover { background-color: #0056b3; }
+        #age-result, #bday-result, #events-result { margin-top: 20px; text-align: left; line-height: 1.6; }
+        .event-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .event-year { font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>अपनी जन्मतिथि चुनें</h2>
+    
+    <select id="day"></select>
+    <select id="month">
+        <option value="1">जनवरी</option>
+        <option value="2">फरवरी</option>
+        <option value="3">मार्च</option>
+        <option value="4">अप्रैल</option>
+        <option value="5">मई</option>
+        <option value="6">जून</option>
+        <option value="7">जुलाई</option>
+        <option value="8">अगस्त</option>
+        <option value="9">सितंबर</option>
+        <option value="1">नवंबर</option>
+        <option value="12">दिसंबर</option>
+    </select>
+    <select id="year"></select>
+
+    <br>
+    <button onclick="calculateData()">जानकारी प्राप्त करें</button>
+    
+    <div id="age-result"></div>
+    <div id="bday-result"></div>
+    <div id="events-result"></div>
+</div>
+
+<script>
+    window.onload = function() {
+        const daySelect = document.getElementById('day');
+        const yearSelect = document.getElementById('year');
+        
+        for (let i = 1; i <= 31; i++) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerHTML = i;
+            daySelect.appendChild(opt);
+        }
+
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear; i >= 1900; i--) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerHTML = i;
+            yearSelect.appendChild(opt);
+        }
+    };
+
+    async function calculateData() {
+        const day = parseInt(document.getElementById('day').value);
+        const month = parseInt(document.getElementById('month').value) - 1;
+        const year = parseInt(document.getElementById('year').value);
+
+        const dob = new Date(year, month, day);
+        const now = new Date();
+
+        const ageDate = new Date(now - dob);
+        const years = Math.abs(ageDate.getUTCFullYear() - 1970);
+        const monthsDiff = ageDate.getUTCMonth();
+        const daysDiff = ageDate.getUTCDate() - 1;
+
+        const diffInMs = now - dob;
+        const diffInSeconds = Math.floor(diffInMs / 1000);
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        const diffInDays = Math.floor(diffInHours / 24);
+
+        let ageHtml = `<h3>आपकी सटीक उम्र:</h3>
+        <p>${years} वर्ष, ${monthsDiff} महीने, और ${daysDiff} दिन</p>
+        <p>कुल समय: ${diffInDays} दिन, या ${diffInHours} घंटे, या ${diffInMinutes} मिनट, या ${diffInSeconds} सेकंड</p>`;
+        document.getElementById('age-result').innerHTML = ageHtml;
+
+        const nextBday = new Date(now.getFullYear(), month, day);
+        if (nextBday < now) {
+            nextBday.setFullYear(now.getFullYear() + 1);
+        }
+        const bdayDiffMs = nextBday - now;
+        const bdayDiffDays = Math.ceil(bdayDiffMs / (1000 * 60 * 60 * 24));
+        
+        let bdayHtml = `<h3>अगले जन्मदिन तक:</h3>
+        <p>${bdayDiffDays} दिन शेष हैं</p>`;
+        document.getElementById('bday-result').innerHTML = bdayHtml;
+
+        const targetMonth = String(month + 1).padStart(2, '0');
+        const targetDay = String(day).padStart(2, '0');
+        
+        document.getElementById('events-result').innerHTML = `<h3>इतिहास के पन्ने से (${targetDay}/${targetMonth}):</h3><p>जानकारी फेच की जा रही है...</p>`;
+        
+        try {
+            const response = await fetch(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/events/${targetMonth}/${targetDay}`);
+            const data = await response.json();
+            
+            let eventsHtml = `<h3>इतिहास के पन्ने से (${targetDay}/${targetMonth}):</h3>`;
+            
+            if (data.events && data.events.length > 0) {
+                const limit = Math.min(data.events.length, 5);
+                for (let i = 0; i < limit; i++) {
+                    const event = data.events[i];
+                    eventsHtml += `
+                    <div class="event-item">
+                        <span class="event-year">${event.year}:</span> ${event.text}
+                    </div>`;
+                }
+            } else {
+                eventsHtml += `<p>इस दिन के लिए कोई प्रमुख घटना नहीं मिली.</p>`;
+            }
+            
+            document.getElementById('events-result').innerHTML = eventsHtml;
+        } catch (error) {
+            document.getElementById('events-result').innerHTML = `<h3>इतिहास के पन्ने से:</h3><p>डेटा लोड करने में असमर्थ.</p>`;
+        }
+    }
+</script>
+
+</body>
+</html>
